@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prokario Quest: Misi Mengenal Sel</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bio: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              400: '#2dd4bf',
+              500: '#14b8a6',
+              600: '#0d9488',
+              800: '#115e59',
+              900: '#134e4a',
+              accent: '#38bdf8',
+              dna: '#ec4899',
+              wall: '#f59e0b',
+              capsule: '#8b5cf6'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Font Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Custom CSS for specialized interactions -->
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+    }
+    .pulse-glow {
+      animation: pulseGlow 2.5s infinite ease-in-out;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(45, 212, 191, 0.4)); }
+      50% { filter: drop-shadow(0 0 18px rgba(45, 212, 191, 0.8)); }
+    }
+    .dna-spin {
+      animation: dnaFloat 6s ease-in-out infinite alternate;
+    }
+    @keyframes dnaFloat {
+      0% { transform: translateY(0px) rotate(0deg); }
+      100% { transform: translateY(-8px) rotate(3deg); }
+    }
+    .cell-target {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .cell-target:hover {
+      stroke: #38bdf8;
+      stroke-width: 3;
+      filter: brightness(1.2);
+    }
+    .cell-target.active {
+      stroke: #f59e0b;
+      stroke-dasharray: 4;
+      animation: dash 1s linear infinite;
+    }
+    @keyframes dash {
+      to { stroke-dashoffset: -8; }
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col justify-between overflow-x-hidden bg-slate-950 text-slate-100 antialiased selection:bg-bio-500 selection:text-white">
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-bio-600 to-bio-400 flex items-center justify-center shadow-lg shadow-bio-500/20">
+          <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-bio-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">Prokario Quest</h1>
+          <p class="text-xs text-slate-400 font-medium">Biologi SMA/MA Kelas XI &bull; Sel Prokariotik</p>
+        </div>
+      </div>
+
+      <!-- Live Player Badge & Level Indicator -->
+      <div id="top-status-bar" class="hidden flex items-center gap-4 bg-slate-800/80 border border-slate-700/60 rounded-full px-4 py-1.5 text-xs">
+        <div class="flex items-center gap-2 border-r border-slate-700 pr-3">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-slate-300 font-semibold" id="player-display-name">Peneliti</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-slate-400">Level:</span>
+          <span id="current-level-badge" class="font-bold text-bio-400">1 / 3</span>
+        </div>
+        <div class="flex items-center gap-2 border-l border-slate-700 pl-3">
+          <span class="text-slate-400">Skor:</span>
+          <span id="current-score-badge" class="font-bold text-yellow-400">0</span>
+        </div>
+      </div>
+
+      <!-- Action Utilities -->
+      <div class="flex items-center gap-2">
+        <button id="btn-sound-toggle" title="Matikan/Nyalakan Suara" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
+          <svg id="icon-sound-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+          <svg id="icon-sound-off" class="w-5 h-5 hidden text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+        </button>
+        <button id="btn-open-di-guide" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-bio-400 border border-bio-500/30 text-xs font-semibold flex items-center gap-1.5 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+          Panduan Guru & Siswa
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Game Container -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center">
+
+    <!-- SCREEN 0: WELCOME & START -->
+    <section id="screen-welcome" class="space-y-8 my-auto">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <!-- Text & Form -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-bio-500/10 border border-bio-500/30 text-bio-400 text-xs font-semibold">
+            <span class="w-2 h-2 rounded-full bg-bio-400"></span>
+            Media Pembelajaran Biologi DI (Direct Instruction)
+          </div>
+          <h1 class="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
+            Misi Eksplorasi Mikroskopis: <span class="bg-gradient-to-r from-bio-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">Sel Prokariotik</span>
+          </h1>
+          <p class="text-slate-300 text-sm md:text-base leading-relaxed">
+            Selamat datang, Peneliti Muda! Kamu ditugaskan dalam misi laboratorium virtual untuk mengidentifikasi struktur mikroskopis organisme sel tunggal tanpa membran inti (Prokariot). Kenali ciri visual unik setiap struktur dan uji pemahaman Biologi-mu!
+          </p>
+
+          <!-- Player Input Form -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 md:p-6 shadow-xl space-y-4">
+            <div>
+              <label for="player-name-input" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Identitas Peneliti / Nama Siswa</label>
+              <input type="text" id="player-name-input" placeholder="Masukkan nama lengkap kamu..." 
+                class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-5 stroke-none focus:outline-none focus:border-bio-400 focus:ring-1 focus:ring-bio-400 transition">
+            </div>
+            
+            <div class="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800/80 text-xs text-slate-400 space-y-1">
+              <p class="font-semibold text-slate-200"> Target Pembelajaran Phase F (Kelas XI):</p>
+              <p>&bull; Mengidentifikasi 8 bagian utama/tambahan sel prokariotik.</p>
+              <p>&bull; Membedakan wilayah Nukleoid dengan Inti Sel Sejati (Nukleus).</p>
+              <p>&bull; Memahami fungsi spesifik seperti sintesis protein & pergerakan.</p>
+            </div>
+
+            <button id="btn-start-game" class="w-full py-4 rounded-xl bg-gradient-to-r from-bio-500 to-bio-600 hover:from-bio-400 hover:to-bio-500 text-slate-950 font-extrabold text-base tracking-wide shadow-lg shadow-bio-500/25 transition transform active:scale-[0.99] flex items-center justify-center gap-2">
+              <span>MULAI PETUALANGAN ILMIAH</span>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive Decorative Illustration -->
+        <div class="lg:col-span-5 flex justify-center">
+          <div class="relative w-full max-w-md p-6 bg-slate-900/60 border border-slate-800 rounded-3xl shadow-2xl backdrop-blur-sm text-center pulse-glow">
+            <!-- Hero Bacteria SVG Preview -->
+            <svg viewBox="0 0 400 300" class="w-full h-auto rounded-xl dna-spin">
+              <defs>
+                <linearGradient id="gradCapsule" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.8"/>
+                  <stop offset="100%" stop-color="#6d28d9" stop-opacity="0.9"/>
+                </linearGradient>
+                <linearGradient id="gradWall" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#f59e0b"/>
+                  <stop offset="100%" stop-color="#d97706"/>
+                </linearGradient>
+                <linearGradient id="gradPlasma" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#14b8a6"/>
+                  <stop offset="100%" stop-color="#0f766e"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Flagellum -->
+              <path d="M 80 150 Q 50 120 30 160 T 0 140" stroke="#2dd4bf" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+              <!-- Outer Capsule -->
+              <rect x="80" y="80" width="240" height="140" rx="70" fill="url(#gradCapsule)" stroke="#a78bfa" stroke-width="3"/>
+              
+              <!-- Dinding Sel -->
+              <rect x="95" y="95" width="210" height="110" rx="55" fill="url(#gradWall)" stroke="#fbbf24" stroke-width="2"/>
+              
+              <!-- Membran Plasma -->
+              <rect x="105" y="105" width="190" height="90" rx="45" fill="url(#gradPlasma)"/>
+              
+              <!-- Cytoplasma & Ribosomes -->
+              <circle cx="140" cy="130" r="3" fill="#fef08a"/>
+              <circle cx="160" cy="170" r="3" fill="#fef08a"/>
+              <circle cx="220" cy="120" r="3" fill="#fef08a"/>
+              <circle cx="260" cy="160" r="3" fill="#fef08a"/>
+
+              <!-- Plasmid Ring -->
+              <ellipse cx="250" cy="140" rx="12" ry="7" fill="none" stroke="#f472b6" stroke-width="3"/>
+
+              <!-- DNA Nucleoid tangle -->
+              <path d="M 130 150 Q 150 120 180 150 T 220 140 T 190 170 Z" fill="none" stroke="#ec4899" stroke-width="4" stroke-linecap="round"/>
+
+              <!-- Label Overlay Badge -->
+              <rect x="110" y="18" width="180" height="34" rx="8" fill="#0f172a" stroke="#334155"/>
+              <text x="200" y="40" text-anchor="middle" fill="#2dd4bf" font-size="13" font-weight="bold">Sel Bakteri (Prokariot)</text>
+            </svg>
+            <p class="mt-3 text-xs text-slate-400 font-medium italic">Ilustrasi Struktur Bakteri Tipikal (Model 3D Skematik)</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 1: LEVEL 1 (Kenali Struktur Sel - Guided Practice) -->
+    <section id="screen-level1" class="hidden space-y-6">
+      <!-- Header Info Level -->
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-bio-400">LEVEL 1 &bull; LATIHAN TERBIMBING</span>
+          <h2 class="text-xl font-bold text-white">Kenali Bagian Sel Melalui Penunjuk Angka</h2>
+          <p class="text-xs text-slate-400">Pilih nomor struktur pada gambar sel, lalu tebak nama struktur yang tepat.</p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-slate-400">Progres Identifikasi</span>
+          <div class="text-lg font-black text-emerald-400" id="l1-progress-text">0 / 8 Struktur</div>
+        </div>
+      </div>
+
+      <!-- Main Interactive Diagram & Question Panel -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Cell SVG Interactive Canvas -->
+        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col items-center relative overflow-hidden">
+          <div class="w-full flex justify-between items-center mb-2 px-2 text-xs text-slate-400">
+            <span> Diagram Mikroskopis Sel Prokariotik</span>
+            <span class="text-slate-500">Klik angka untuk menyorot</span>
+          </div>
+
+          <!-- SVG Level 1 Cell -->
+          <svg id="svg-level1" viewBox="0 0 650 420" class="w-full h-auto max-h-[380px]">
+            <defs>
+              <linearGradient id="l1Capsule" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.85"/>
+                <stop offset="100%" stop-color="#5b21b6" stop-opacity="0.9"/>
+              </linearGradient>
+              <linearGradient id="l1Wall" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f59e0b"/>
+                <stop offset="100%" stop-color="#b45309"/>
+              </linearGradient>
+              <linearGradient id="l1Plasma" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#14b8a6"/>
+                <stop offset="100%" stop-color="#0d9488"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Flagellum (Num 8) -->
+            <path id="part-flagellum" d="M 110 210 C 60 180, 40 260, 10 210" stroke="#38bdf8" stroke-width="6" fill="none" stroke-linecap="round" class="cell-target"/>
+            
+            <!-- Capsule (Num 7) -->
+            <rect id="part-kapsul" x="110" y="80" width="380" height="260" rx="130" fill="url(#l1Capsule)" stroke="#a78bfa" stroke-width="3" class="cell-target"/>
+            
+            <!-- Cell Wall (Num 2) -->
+            <rect id="part-dinding" x="135" y="105" width="330" height="210" rx="105" fill="url(#l1Wall)" stroke="#fef08a" stroke-width="2" class="cell-target"/>
+            
+            <!-- Plasma Membrane (Num 1) -->
+            <rect id="part-membran" x="155" y="125" width="290" height="170" rx="85" fill="url(#l1Plasma)" stroke="#99f6e4" stroke-width="2" class="cell-target"/>
+            
+            <!-- Cytoplasm (Num 3) -->
+            <rect id="part-sitoplasma" x="175" y="145" width="250" height="130" rx="65" fill="#0f766e" fill-opacity="0.6" class="cell-target"/>
+
+            <!-- Ribosomes (Num 4) -->
+            <g id="part-ribosom" class="cell-target">
+              <circle cx="210" cy="180" r="4" fill="#fef08a"/>
+              <circle cx="230" cy="230" r="4" fill="#fef08a"/>
+              <circle cx="370" cy="180" r="4" fill="#fef08a"/>
+              <circle cx="390" cy="220" r="4" fill="#fef08a"/>
+              <circle cx="280" cy="250" r="4" fill="#fef08a"/>
+            </g>
+
+            <!-- Plasmid (Num 6) -->
+            <g id="part-plasmid" class="cell-target">
+              <ellipse cx="380" cy="200" rx="18" ry="10" fill="none" stroke="#f472b6" stroke-width="4"/>
+            </g>
+
+            <!-- Nucleoid DNA (Num 5) -->
+            <path id="part-nukleoid" d="M 230 200 C 250 160, 310 160, 330 200 C 350 230, 270 250, 240 210 Z" fill="none" stroke="#ec4899" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" class="cell-target"/>
+
+            <!-- Pili/Fimbriae decorative -->
+            <line x1="300" y1="80" x2="300" y2="60" stroke="#a78bfa" stroke-width="3" stroke-linecap="round"/>
+            <line x1="400" y1="100" x2="420" y2="80" stroke="#a78bfa" stroke-width="3" stroke-linecap="round"/>
+            <line x1="200" y1="90" x2="190" y2="70" stroke="#a78bfa" stroke-width="3" stroke-linecap="round"/>
+
+            <!-- Pointer Lines & Number Badges (1 to 8) -->
+            <!-- 1. Membran Plasma -->
+            <line x1="200" y1="130" x2="180" y2="40" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <g class="pointer-btn cursor-pointer" data-num="1" transform="translate(180, 40)">
+              <circle r="14" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+              <text y="4" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="bold">1</text>
+            </g>
+
+            <!-- 2. Dinding Sel -->
+            <line x1="290" y1="110" x2="290" y2="35" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <g class="pointer-btn cursor-pointer" data-num="2" transform="translate(290, 35)">
+              <circle r="14" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
+              <text y="4" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="bold">2</text>
+            </g>
+
+            <!-- 3. Sitoplasma -->
+            <line x1="190" y1="200" x2="130" y2="370" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <g class="pointer-btn cursor-pointer" data-num="3" transform="translate(130, 370)">
+              <circle r="14" fill="#0f172a" stroke="#14b8a6" stroke-width="2"/>
+              <text y="4" text-anchor="middle" fill="#14b8a6" font-size="12" font-weight="bold">3</text>
+            </g>
+
+            <!-- 4. Ribosom -->
+            <line x1="230" y1="230" x2="240" y2="370" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <g class="pointer-btn cursor-pointer" data-num="4" transform="translate(240, 370)">
+              <circle r="14" fill="#0f172a" stroke="#fef08a" stroke-width="2"/>
+              <text y="4" text-anchor="middle" fill="#fef08a" font-size="12" font-weight="bold">4</text>
+            </g>
+
+            <!-- 5. Nukleoid -->
+            <line x1="290" y1="200" x2="350" y2="370" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <g class="pointer-btn cursor-pointer" data-num="5" transform="translate(350, 370)">
+              <circle r="14" fill="#0f172a" stroke="#ec4899" stroke-width="2"/>
+              <text y="4" text-anchor="middle" fill="#ec4899" font-size="12" font-weight="bold">5</text>
+            </g>
+
+            <!-- 6. Plasmid -->
+            <line x1="380" y1="210" x2="450" y2="370" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <g class="pointer-btn cursor-pointer" data-num="6" transform="translate(450, 370)">
+              <circle r="14" fill="#0f172a" stroke="#f472b6" stroke-width="2"/>
+              <text y="4" text-anchor="middle" fill="#f472b6" font-size="12" font-weight="bold">6</text>
+            </g>
+
+            <!-- 7. Kapsul -->
+            <line x1="420" y1="90" x2="420" y2="35" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <g class="pointer-btn cursor-pointer" data-num="7" transform="translate(420, 35)">
+              <circle r="14" fill="#0f172a" stroke="#a78bfa" stroke-width="2"/>
+              <text y="4" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="bold">7</text>
+            </g>
+
+            <!-- 8. Flagelum -->
+            <line x1="40" y1="210" x2="50" y2="120" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <g class="pointer-btn cursor-pointer" data-num="8" transform="translate(50, 120)">
+              <circle r="14" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+              <text y="4" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="bold">8</text>
+            </g>
+
+          </svg>
+        </div>
+
+        <!-- Question & Answer Choice Interactive Panel -->
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between min-h-[380px]">
+          <div>
+            <!-- Question Badge -->
+            <div class="flex items-center justify-between mb-3">
+              <span id="l1-target-badge" class="px-3 py-1 rounded-full bg-bio-500/20 border border-bio-500/40 text-bio-400 font-bold text-xs">
+                Mengevaluasi Nomor: <span id="l1-current-num">1</span>
+              </span>
+              <span class="text-xs text-slate-400">Poin Soal: 10 Pts</span>
+            </div>
+
+            <h3 class="text-lg font-bold text-white mb-2" id="l1-question-title">
+              Apa nama struktur yang ditunjukkan oleh Nomor <span id="l1-target-num-text" class="text-bio-400">1</span>?
+            </h3>
+            <p class="text-xs text-slate-400 mb-4" id="l1-question-hint">
+              Petunjuk visual: Perhatikan posisi lapisan atau organel pada diagram.
+            </p>
+
+            <!-- Answer Buttons Container -->
+            <div id="l1-options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <!-- Dynamically populated options -->
+            </div>
+          </div>
+
+          <!-- Direct Feedback Box -->
+          <div id="l1-feedback-box" class="hidden mt-4 p-4 rounded-xl border text-xs leading-relaxed transition-all">
+            <div id="l1-feedback-status" class="font-bold text-sm mb-1"></div>
+            <div id="l1-feedback-text" class="text-slate-300"></div>
+            <button id="l1-btn-next" class="mt-3 w-full py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition border border-slate-700">
+              Lanjut ke Nomor Berikutnya &rarr;
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SCREEN 2: LEVEL 2 (Pasangkan Nama dan Struktur/Fungsi) -->
+    <section id="screen-level2" class="hidden space-y-6">
+      <!-- Header Info Level -->
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-sky-400">LEVEL 2 &bull; PENGECEKAN PEMAHAMAN</span>
+          <h2 class="text-xl font-bold text-white">Jodohkan Struktur Sel dengan Deskripsi Biologisnya</h2>
+          <p class="text-xs text-slate-400">Klik satu Nama Struktur di sebelah kiri, lalu klik Deskripsi Fungsi/Visual yang cocok di sebelah kanan.</p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-slate-400">Pasangan Terhubung</span>
+          <div class="text-lg font-black text-sky-400" id="l2-progress-text">0 / 6 Pasang</div>
+        </div>
+      </div>
+
+      <!-- Matching Board -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Left Column: Structure Names -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2">1. Pilih Nama Struktur</h3>
+          <div id="l2-names-container" class="space-y-2.5">
+            <!-- Dynamically Rendered Name Cards -->
+          </div>
+        </div>
+
+        <!-- Right Column: Descriptions -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2">2. Pilih Deskripsi / Ciri Visual yang Pas</h3>
+          <div id="l2-descs-container" class="space-y-2.5">
+            <!-- Dynamically Rendered Description Cards -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Matching Feedback & Next Level Button -->
+      <div class="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <div id="l2-status-msg" class="text-xs text-slate-300 italic">
+          Klik Nama Struktur lalu klik Deskripsi Pasangannya.
+        </div>
+        <button id="l2-btn-complete" class="hidden px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-bio-500 hover:from-sky-400 hover:to-bio-400 text-slate-950 font-bold text-sm shadow-lg transition">
+          Lanjut ke Level 3: Misi Mandiri &rarr;
+        </button>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: LEVEL 3 (Misi Identifikasi Mandiri) -->
+    <section id="screen-level3" class="hidden space-y-6">
+      <!-- Header Info Level -->
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-400">LEVEL 3 &bull; LATIHAN MANDIRI & EVALUASI</span>
+          <h2 class="text-xl font-bold text-white">Identifikasi Mandiri Tanpa Bantuan Petunjuk</h2>
+          <p class="text-xs text-slate-400">Gambar sel baru (orientasi berbeda). Isilah atau pilihlah struktur untuk setiap penunjuk angka tanpa kunci bantuan langsung.</p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-slate-400">Soal Terjawab</span>
+          <div class="text-lg font-black text-amber-400" id="l3-progress-text">0 / 5 Terjawab</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- New Cell Vector (Simplified schematic for independent test) -->
+        <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-center">
+          <span class="text-xs text-slate-400 mb-3 font-medium">Model Sel Prokariotik Varian B (Potongan Membujur)</span>
+          
+          <svg viewBox="0 0 450 320" class="w-full h-auto max-h-[300px]">
+            <!-- Capsule Outer -->
+            <rect x="50" y="60" width="350" height="200" rx="100" fill="#6d28d9" fill-opacity="0.3" stroke="#a78bfa" stroke-width="3"/>
+            <!-- Cell Wall -->
+            <rect x="70" y="80" width="310" height="160" rx="80" fill="#d97706" fill-opacity="0.4" stroke="#f59e0b" stroke-width="2"/>
+            <!-- Plasma Membrane -->
+            <rect x="85" y="95" width="280" height="130" rx="65" fill="#0d9488" fill-opacity="0.6" stroke="#2dd4bf" stroke-width="2"/>
+            
+            <!-- Nucleoid pink ribbon -->
+            <path d="M 140 160 C 180 120, 260 200, 300 150 C 270 190, 200 130, 150 170 Z" fill="#ec4899" fill-opacity="0.7" stroke="#f472b6" stroke-width="3"/>
+            
+            <!-- Plasmid Ring -->
+            <circle cx="320" cy="180" r="14" fill="none" stroke="#f472b6" stroke-width="3"/>
+            
+            <!-- Flagellum Tail -->
+            <path d="M 50 160 Q 30 130, 10 170" stroke="#38bdf8" stroke-width="5" fill="none"/>
+
+            <!-- Pointers Level 3 (A, B, C, D, E) -->
+            <!-- A: Nukleoid -->
+            <line x1="220" y1="160" x2="220" y2="25" stroke="#f472b6" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <circle cx="220" cy="25" r="13" fill="#0f172a" stroke="#ec4899" stroke-width="2"/>
+            <text x="220" y="29" text-anchor="middle" fill="#ec4899" font-size="11" font-weight="bold">A</text>
+
+            <!-- B: Dinding Sel -->
+            <line x1="100" y1="80" x2="100" y2="25" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <circle cx="100" cy="25" r="13" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
+            <text x="100" y="29" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="bold">B</text>
+
+            <!-- C: Plasmid -->
+            <line x1="320" y1="180" x2="350" y2="285" stroke="#f472b6" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <circle cx="350" cy="285" r="13" fill="#0f172a" stroke="#f472b6" stroke-width="2"/>
+            <text x="350" y="289" text-anchor="middle" fill="#f472b6" font-size="11" font-weight="bold">C</text>
+
+            <!-- D: Flagelum -->
+            <line x1="30" y1="150" x2="60" y2="285" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <circle cx="60" cy="285" r="13" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+            <text x="60" y="289" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="bold">D</text>
+
+            <!-- E: Membran Plasma -->
+            <line x1="200" y1="225" x2="200" y2="285" stroke="#2dd4bf" stroke-width="1.5" stroke-dasharray="3,3"/>
+            <circle cx="200" cy="285" r="13" fill="#0f172a" stroke="#2dd4bf" stroke-width="2"/>
+            <text x="200" y="289" text-anchor="middle" fill="#2dd4bf" font-size="11" font-weight="bold">E</text>
+          </svg>
+        </div>
+
+        <!-- Answer Forms Panel -->
+        <div class="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider">Tentukan Nama Bagian yang Ditunjuk:</h3>
+          
+          <div class="space-y-3" id="l3-questions-list">
+            <!-- Question Items A to E dynamically generated -->
+          </div>
+
+          <button id="l3-btn-submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-bio-500 hover:from-amber-400 hover:to-bio-400 text-slate-950 font-black text-sm tracking-wide shadow-lg transition">
+            SELESAIKAN MISI & LIHAT HASIL EVALUASI
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 4: RESULTS & EVALUATION REPORT -->
+    <section id="screen-results" class="hidden space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6">
+        
+        <!-- Header Banner Result -->
+        <div class="text-center space-y-2 border-b border-slate-800 pb-6">
+          <span class="px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-wider uppercase">Laporan Evaluasi Formatif Biologi</span>
+          <h2 class="text-2xl md:text-4xl font-extrabold text-white">Hasil Misi Penelitian Sel</h2>
+          <p class="text-slate-400 text-sm">Siswa: <span id="res-player-name" class="font-bold text-bio-400">---</span> &bull; Kelas XI SMA/MA (Fase F)</p>
+        </div>
+
+        <!-- Final Score Badges Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-center space-y-1">
+            <span class="text-xs text-slate-400 uppercase font-semibold">Skor Akhir</span>
+            <div id="res-final-score" class="text-4xl font-black text-yellow-400">0</div>
+            <span class="text-[10px] text-slate-500">Skala 0 - 100</span>
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-center space-y-1">
+            <span class="text-xs text-slate-400 uppercase font-semibold">Ketepatan Jawaban</span>
+            <div id="res-accuracy-pct" class="text-4xl font-black text-bio-400">0%</div>
+            <span class="text-[10px] text-slate-500" id="res-correct-count">0 Benar / 0 Soal</span>
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-center space-y-1">
+            <span class="text-xs text-slate-400 uppercase font-semibold">Status Penguasaan</span>
+            <div id="res-mastery-status" class="text-xl font-bold text-emerald-400 mt-2">Sangat Baik</div>
+            <span class="text-[10px] text-slate-500">Tujuan Pembelajaran DI</span>
+          </div>
+        </div>
+
+        <!-- Diagnostic Feedback Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Strengths -->
+          <div class="bg-emerald-950/20 border border-emerald-800/40 rounded-2xl p-4 space-y-2">
+            <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              Struktur yang Telah Dikenali Baik:
+            </h3>
+            <ul id="res-mastered-list" class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+              <!-- Dynamically populated -->
+            </ul>
+          </div>
+
+          <!-- Weaknesses / Needs Review -->
+          <div class="bg-rose-950/20 border border-rose-800/40 rounded-2xl p-4 space-y-2">
+            <h3 class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              Struktur yang Perlu Dipelajari Kembali:
+            </h3>
+            <ul id="res-review-list" class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+              <!-- Dynamically populated -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- Motivation & Scientific Notes Box -->
+        <div class="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-2">
+          <h4 class="text-xs font-bold text-bio-400 uppercase tracking-wider"> Catatan Penting Biologi (Konsep Prokariot):</h4>
+          <p id="res-motivation-text" class="text-xs text-slate-300 leading-relaxed"></p>
+          <p class="text-[11px] text-slate-400 italic">
+            *Ingat: Sel prokariotik TIDAK memiliki membran inti (nukleus sejati). DNA utama berada di wilayah Nukleoid. Struktur seperti Kapsul, Plasmid, dan Flagelum merupakan struktur tambahan yang tidak dimiliki oleh semua spesies prokariotik.
+          </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center justify-center gap-4 pt-2">
+          <button id="btn-restart-game" class="px-6 py-3 rounded-xl bg-gradient-to-r from-bio-500 to-bio-600 hover:from-bio-400 hover:to-bio-500 text-slate-950 font-black text-sm shadow-lg transition">
+             Main Lagi / Ulangi Misi
+          </button>
+          <button id="btn-print-report" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-sm transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            Cetak / Simpan Laporan
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 bg-slate-900/50 py-4 text-center text-xs text-slate-500">
+    <div class="max-w-6xl mx-auto px-4 flex flex-wrap justify-between items-center gap-2">
+      <p>Prokario Quest &copy; Media Pembelajaran Biologi SMA/MA Kelas XI (Fase F)</p>
+      <p class="text-slate-400">Model Pembelajaran: Direct Instruction (DI)</p>
+    </div>
+  </footer>
+
+  <!-- MODAL: Direct Instruction Teacher & Student Guide -->
+  <div id="modal-di-guide" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-6 shadow-2xl relative">
+      <!-- Close Button -->
+      <button id="btn-close-modal" class="absolute top-4 right-4 p-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <div class="space-y-2">
+        <span class="px-3 py-1 rounded-full bg-bio-500/20 text-bio-400 text-xs font-bold">Panduan Pedagogis</span>
+        <h2 class="text-xl font-extrabold text-white">Integrasi Direct Instruction (DI) dalam Game</h2>
+      </div>
+
+      <div class="space-y-4 text-xs text-slate-300 leading-relaxed">
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+          <h3 class="font-bold text-bio-400 text-sm">1. Demonstrasi Guru (Sesi Penjelasan Awal)</h3>
+          <p>Guru memberikan pemaparan awal mengenai konsep sel prokariotik, menekankan bahwa prokariot tidak memiliki membran inti sejati, serta perbedaan antara organel utama (dinding, membran, ribosom, nukleoid) dan organel tambahan (kapsul, plasmid, flagelum).</p>
+        </div>
+
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+          <h3 class="font-bold text-sky-400 text-sm">2. Latihan Terbimbing (Level 1)</h3>
+          <p>Peserta didik memainkan Level 1. Setiap jawaban yang dipilih menyajikan umpan balik langsung (penjelasan ilmiah singkat) untuk memvalidasi ciri visual struktur.</p>
+        </div>
+
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+          <h3 class="font-bold text-indigo-400 text-sm">3. Pengecekan Pemahaman (Level 2)</h3>
+          <p>Peserta didik menjodohkan nama struktur dengan fungsi/ciri utamanya. Guru memantau tingkat ketepatan pasangan untuk mendeteksi miskonsepsi.</p>
+        </div>
+
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+          <h3 class="font-bold text-amber-400 text-sm">4. Latihan Mandiri (Level 3)</h3>
+          <p>Peserta didik mengidentifikasi struktur sel prokariotik pada varian gambar baru tanpa petunjuk langsung untuk menguji pemahaman mandiri.</p>
+        </div>
+
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+          <h3 class="font-bold text-emerald-400 text-sm">5. Evaluasi & Umpan Balik Formatif</h3>
+          <p>Halaman Hasil menyajikan diagnosis bagian sel mana yang telah dikuasai dan mana yang perlu diulas kembali.</p>
+        </div>
+      </div>
+
+      <div class="text-right">
+        <button id="btn-close-modal-bottom" class="px-5 py-2 rounded-xl bg-bio-500 hover:bg-bio-400 text-slate-950 font-bold text-xs">
+          Paham, Kembali ke Game
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME ENGINE JAVASCRIPT -->
+  <script>
+    /* Sound Effects Synthesizer using Web Audio API */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      }
+      playCorrect() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.15); // E5
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+      playWrong() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now); // A3
+        osc.frequency.exponentialRampToValueAtTime(164.81, now + 0.2); // E3
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+      playClick() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, now);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /* Biological Data Bank */
+    const STRUCTURE_DATA = {
+      1: {
+        id: "membran",
+        name: "Membran Plasma",
+        hint: "Lapisan selaput paling dalam yang mengatur keluar-masuknya zat.",
+        explanation: "Benar! Membran plasma bersifat selektif permeabel, membatasi sitoplasma dan mengontrol pasokan nutrisi serta limbah sel.",
+        visualTrait: "Lapisan terdalam di bawah dinding sel.",
+        isOptional: false
+      },
+      2: {
+        id: "dinding",
+        name: "Dinding Sel",
+        hint: "Lapisan kaku berbahan peptidoglikan yang memberi bentuk dan perlindungan fisik.",
+        explanation: "Tepat! Dinding sel prokariotik (seperti bakteri) mengandung peptidoglikan yang menjaga sel dari tekanan osmotik.",
+        visualTrait: "Lapisan sedang yang tebal di antara kapsul dan membran.",
+        isOptional: false
+      },
+      3: {
+        id: "sitoplasma",
+        name: "Sitoplasma",
+        hint: "Cairan sel/matriks tempat dilaksanakannya reaksi metabolik sel.",
+        explanation: "Benar! Sitoplasma prokariotik berisi cairan semi-transparan, ribosom, serta materi genetik tanpa sekat membran inti.",
+        visualTrait: "Cairan internal pengisi rongga sel.",
+        isOptional: false
+      },
+      4: {
+        id: "ribosom",
+        name: "Ribosom",
+        hint: "Butiran-butiran kecil di sitoplasma tempat sintesis protein.",
+        explanation: "Tepat! Ribosom prokariotik berukuran 70S (lebih kecil dari ribosom eukariotik) dan berfungsi merangkai asam amino.",
+        visualTrait: "Bintik-bintik kecil tersebar melimpah di sitoplasma.",
+        isOptional: false
+      },
+      5: {
+        id: "nukleoid",
+        name: "Nukleoid",
+        hint: "Wilayah berpilin tempat DNA utama berada TANPA dibungkus membran inti.",
+        explanation: "Luar biasa! Nukleoid adalah wilayah terkonsentrasinya DNA kromosom tunggal melingkar (sirkuler) prokariot. Bukan Nukleus sejati!",
+        visualTrait: "Untaian benang Kusut/Lilitan besar di tengah sel.",
+        isOptional: false
+      },
+      6: {
+        id: "plasmid",
+        name: "Plasmid",
+        hint: "Cincin DNA kecil tambahan di luar DNA utama yang membawa gen khusus.",
+        explanation: "Tepat! Plasmid berupa DNA sirkuler kecil tambahan yang sering membawa gen resistensi antibiotik.",
+        visualTrait: "Cincin DNA kecil terpisah dari nukleoid.",
+        isOptional: true
+      },
+      7: {
+        id: "kapsul",
+        name: "Kapsul",
+        hint: "Lapisan mukosa/lendir terluar pelindung dari sistem imun inang.",
+        explanation: "Benar! Kapsul adalah lapisan Polisakarida paling luar yang membantu pelekatan dan perlindungan dari sel imun.",
+        visualTrait: "Lapisan pembungkus terluar yang paling tebal.",
+        isOptional: true
+      },
+      8: {
+        id: "flagelum",
+        name: "Flagelum",
+        hint: "Struktur menyerupai cambuk/ekor yang berfungsi sebagai alat gerak.",
+        explanation: "Tepat! Flagelum berputar seperti baling-baling untuk membantu bakteri bergerak (motilitas) menuju sumber nutrisi.",
+        visualTrait: "Ekor/cambuk panjang di ujung luar sel.",
+        isOptional: true
+      }
+    };
+
+    /* Matching Data Level 2 */
+    const LEVEL2_PAIRS = [
+      { id: "p1", name: "Ribosom", desc: "Struktur kecil berbentuk butiran tempat terjadinya sintesis protein sel." },
+      { id: "p2", name: "Nukleoid", desc: "Wilayah sitoplasma tempat mengumpulnya DNA utama tanpa membran inti." },
+      { id: "p3", name: "Flagelum", desc: "Struktur menyerupai cambuk yang berputar untuk membantu pergerakan sel." },
+      { id: "p4", name: "Dinding Sel", desc: "Lapisan kaku terbuat dari peptidoglikan penajaga bentuk dan pelindung osmotik." },
+      { id: "p5", name: "Plasmid", desc: "Cincin DNA kecil sirkuler tambahan di luar DNA kromosom utama." },
+      { id: "p6", name: "Kapsul", desc: "Lapisan pelindung lendir Polisakarida di bagian terluar beberapa bakteri." }
+    ];
+
+    /* Level 3 Assessment Questions */
+    const LEVEL3_QUESTIONS = [
+      { key: "A", correctId: "nukleoid", label: "Penunjuk A (Untaian Merah Muda di Tengah)" },
+      { key: "B", correctId: "dinding", label: "Penunjuk B (Lapisan Kaku Kuning/Oranye)" },
+      { key: "C", correctId: "plasmid", label: "Penunjuk C (Cincin Kecil Terpisah)" },
+      { key: "D", correctId: "flagelum", label: "Penunjuk D (Ekor Cambuk Biru di Ujung)" },
+      { key: "E", correctId: "membran", label: "Penunjuk E (Membran Terdalam Hijau-Toska)" }
+    ];
+
+    /* State Management */
+    let gameState = {
+      playerName: "",
+      currentLevel: 1,
+      totalScore: 0,
+      
+      // Level 1 progress
+      l1CurrentNum: 1,
+      l1Answers: {}, // num -> boolean correct
+      l1CompletedNums: new Set(),
+
+      // Level 2 progress
+      l2SelectedName: null,
+      l2SelectedDesc: null,
+      l2MatchedPairs: new Set(),
+
+      // Level 3 progress
+      l3UserSelections: {},
+
+      // Analytics
+      masteredStructures: new Set(),
+      reviewStructures: new Set()
+    };
+
+    /* UI Navigation Helper */
+    function showScreen(screenId) {
+      ['screen-welcome', 'screen-level1', 'screen-level2', 'screen-level3', 'screen-results'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      const activeEl = document.getElementById(screenId);
+      if (activeEl) activeEl.classList.remove('hidden');
+
+      // Toggle status bar
+      const statusBar = document.getElementById('top-status-bar');
+      if (screenId === 'screen-welcome') {
+        statusBar.classList.add('hidden');
+      } else {
+        statusBar.classList.remove('hidden');
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* Update Status Bar UI */
+    function updateStatusBar() {
+      document.getElementById('player-display-name').textContent = gameState.playerName || "Peneliti";
+      document.getElementById('current-level-badge').textContent = `${gameState.currentLevel} / 3`;
+      document.getElementById('current-score-badge').textContent = gameState.totalScore;
+    }
+
+    /* INITIALIZATION & EVENT LISTENERS */
+    window.addEventListener('DOMContentLoaded', () => {
+      // Sound Toggle
+      document.getElementById('btn-sound-toggle').addEventListener('click', () => {
+        sound.enabled = !sound.enabled;
+        document.getElementById('icon-sound-on').classList.toggle('hidden', !sound.enabled);
+        document.getElementById('icon-sound-off').classList.toggle('hidden', sound.enabled);
+      });
+
+      // DI Modal Guide Toggle
+      const modal = document.getElementById('modal-di-guide');
+      document.getElementById('btn-open-di-guide').addEventListener('click', () => {
+        sound.playClick();
+        modal.classList.remove('hidden');
+      });
+      document.getElementById('btn-close-modal').addEventListener('click', () => modal.classList.add('hidden'));
+      document.getElementById('btn-close-modal-bottom').addEventListener('click', () => modal.classList.add('hidden'));
+
+      // Start Game Event
+      document.getElementById('btn-start-game').addEventListener('click', startNewGame);
+
+      // Level 1 Next Question Button
+      document.getElementById('l1-btn-next').addEventListener('click', handleL1Next);
+
+      // Level 3 Submit
+      document.getElementById('l3-btn-submit').addEventListener('click', handleL3Submit);
+
+      // Restart & Print
+      document.getElementById('btn-restart-game').addEventListener('click', () => {
+        sound.playClick();
+        showScreen('screen-welcome');
+      });
+      document.getElementById('btn-print-report').addEventListener('click', () => {
+        window.print();
+      });
+    });
+
+    /* START GAME logic */
+    function startNewGame() {
+      const nameInput = document.getElementById('player-name-input').value.trim();
+      gameState.playerName = nameInput || "Peneliti Muda";
+      gameState.totalScore = 0;
+      gameState.currentLevel = 1;
+      gameState.l1CompletedNums.clear();
+      gameState.l1Answers = {};
+      gameState.l2MatchedPairs.clear();
+      gameState.l3UserSelections = {};
+      gameState.masteredStructures.clear();
+      gameState.reviewStructures.clear();
+
+      sound.playClick();
+      updateStatusBar();
+      initLevel1();
+      showScreen('screen-level1');
+    }
+
+    /* LEVEL 1: LOGIC & RENDERING */
+    function initLevel1() {
+      gameState.currentLevel = 1;
+      gameState.l1CurrentNum = 1;
+      updateStatusBar();
+      setupL1Number(1);
+
+      // Attach pointer click listeners
+      document.querySelectorAll('.pointer-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const num = parseInt(btn.getAttribute('data-num'));
+          sound.playClick();
+          setupL1Number(num);
+        });
+      });
+    }
+
+    function setupL1Number(num) {
+      gameState.l1CurrentNum = num;
+      const data = STRUCTURE_DATA[num];
+
+      document.getElementById('l1-current-num').textContent = num;
+      document.getElementById('l1-target-num-text').textContent = num;
+      document.getElementById('l1-question-hint').textContent = `Petunjuk: ${data.hint}`;
+
+      // Reset feedback box
+      const feedbackBox = document.getElementById('l1-feedback-box');
+      feedbackBox.classList.add('hidden');
+
+      // Highlight corresponding cell target visually
+      document.querySelectorAll('.cell-target').forEach(el => el.classList.remove('active'));
+      const targetEl = document.getElementById(`part-${data.id}`);
+      if (targetEl) targetEl.classList.add('active');
+
+      // Populate Option Buttons (Shuffle correct answer with 3 distractors)
+      const optionsContainer = document.getElementById('l1-options-container');
+      optionsContainer.innerHTML = '';
+
+      const allNames = Object.values(STRUCTURE_DATA).map(s => s.name);
+      const distractors = allNames.filter(n => n !== data.name).sort(() => 0.5 - Math.random()).slice(0, 3);
+      const choices = [data.name, ...distractors].sort(() => 0.5 - Math.random());
+
+      choices.forEach(choiceName => {
+        const btn = document.createElement('button');
+        btn.className = "w-full py-3 px-4 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700/80 text-left text-xs font-semibold text-slate-200 transition transform active:scale-95 flex items-center justify-between";
+        btn.innerHTML = `<span>${choiceName}</span><span class="w-2 h-2 rounded-full bg-slate-700"></span>`;
+        btn.addEventListener('click', () => submitL1Answer(num, choiceName, btn));
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function submitL1Answer(num, selectedName, clickedBtn) {
+      const data = STRUCTURE_DATA[num];
+      const isCorrect = (selectedName === data.name);
+      
+      const feedbackBox = document.getElementById('l1-feedback-box');
+      const feedbackStatus = document.getElementById('l1-feedback-status');
+      const feedbackText = document.getElementById('l1-feedback-text');
+
+      // Disable option buttons
+      document.querySelectorAll('#l1-options-container button').forEach(b => b.disabled = true);
+
+      if (isCorrect) {
+        sound.playCorrect();
+        if (!gameState.l1CompletedNums.has(num)) {
+          gameState.totalScore += 10;
+          gameState.l1CompletedNums.add(num);
+          gameState.masteredStructures.add(data.name);
+        }
+        feedbackBox.className = "mt-4 p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs leading-relaxed";
+        feedbackStatus.className = "font-bold text-sm text-emerald-400 flex items-center gap-1.5";
+        feedbackStatus.innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          Tepat Sekali! (${data.name})
+        `;
+        feedbackText.textContent = `${data.explanation} Ciri Visual: ${data.visualTrait}`;
+      } else {
+        sound.playWrong();
+        gameState.reviewStructures.add(data.name);
+        feedbackBox.className = "mt-4 p-4 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs leading-relaxed";
+        feedbackStatus.className = "font-bold text-sm text-rose-400 flex items-center gap-1.5";
+        feedbackStatus.innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          Kurang Tepat.
+        `;
+        feedbackText.textContent = `Jawaban yang benar adalah "${data.name}". ${data.explanation} Ciri Visual: ${data.visualTrait}`;
+      }
+
+      feedbackBox.classList.remove('hidden');
+      updateStatusBar();
+      document.getElementById('l1-progress-text').textContent = `${gameState.l1CompletedNums.size} / 8 Struktur`;
+    }
+
+    function handleL1Next() {
+      sound.playClick();
+      if (gameState.l1CurrentNum < 8) {
+        setupL1Number(gameState.l1CurrentNum + 1);
+      } else {
+        // Level 1 complete, transition to Level 2
+        initLevel2();
+        showScreen('screen-level2');
+      }
+    }
+
+    /* LEVEL 2: MATCHING LOGIC */
+    function initLevel2() {
+      gameState.currentLevel = 2;
+      updateStatusBar();
+      gameState.l2SelectedName = null;
+      gameState.l2SelectedDesc = null;
+      gameState.l2MatchedPairs.clear();
+
+      document.getElementById('l2-progress-text').textContent = `0 / ${LEVEL2_PAIRS.length} Pasang`;
+      document.getElementById('l2-btn-complete').classList.add('hidden');
+      document.getElementById('l2-status-msg').textContent = "Pilih satu Nama Struktur di sebelah kiri, lalu klik Deskripsi Pasangannya di kanan.";
+
+      renderLevel2Cards();
+    }
+
+    function renderLevel2Cards() {
+      const namesContainer = document.getElementById('l2-names-container');
+      const descsContainer = document.getElementById('l2-descs-container');
+      namesContainer.innerHTML = '';
+      descsContainer.innerHTML = '';
+
+      // Shuffle pairs for descriptions
+      const shuffledDescs = [...LEVEL2_PAIRS].sort(() => 0.5 - Math.random());
+
+      LEVEL2_PAIRS.forEach(pair => {
+        const isMatched = gameState.l2MatchedPairs.has(pair.id);
+        const nameCard = document.createElement('div');
+        nameCard.className = `p-3 rounded-xl border text-xs font-bold cursor-pointer transition flex items-center justify-between ${
+          isMatched 
+            ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300 opacity-60 cursor-default' 
+            : gameState.l2SelectedName === pair.id 
+              ? 'bg-sky-900 border-sky-400 text-white ring-2 ring-sky-400/50' 
+              : 'bg-slate-950 border-slate-800 text-slate-200 hover:border-slate-600'
+        }`;
+        nameCard.innerHTML = `<span>${pair.name}</span> ${isMatched ? '✓' : ''}`;
+        if (!isMatched) {
+          nameCard.addEventListener('click', () => {
+            sound.playClick();
+            gameState.l2SelectedName = pair.id;
+            checkLevel2Match();
+            renderLevel2Cards();
+          });
+        }
+        namesContainer.appendChild(nameCard);
+      });
+
+      shuffledDescs.forEach(pair => {
+        const isMatched = gameState.l2MatchedPairs.has(pair.id);
+        const descCard = document.createElement('div');
+        descCard.className = `p-3 rounded-xl border text-xs cursor-pointer transition leading-relaxed ${
+          isMatched 
+            ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300 opacity-60 cursor-default' 
+            : gameState.l2SelectedDesc === pair.id 
+              ? 'bg-sky-900 border-sky-400 text-white ring-2 ring-sky-400/50' 
+              : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-600'
+        }`;
+        descCard.innerHTML = `<span>${pair.desc}</span> ${isMatched ? ' <span class="text-emerald-400 font-bold">(Cocok)</span>' : ''}`;
+        if (!isMatched) {
+          descCard.addEventListener('click', () => {
+            sound.playClick();
+            gameState.l2SelectedDesc = pair.id;
+            checkLevel2Match();
+            renderLevel2Cards();
+          });
+        }
+        descsContainer.appendChild(descCard);
+      });
+    }
+
+    function checkLevel2Match() {
+      if (gameState.l2SelectedName && gameState.l2SelectedDesc) {
+        if (gameState.l2SelectedName === gameState.l2SelectedDesc) {
+          // Correct Match
+          sound.playCorrect();
+          gameState.l2MatchedPairs.add(gameState.l2SelectedName);
+          gameState.totalScore += 10;
+          
+          const matchedItem = LEVEL2_PAIRS.find(p => p.id === gameState.l2SelectedName);
+          if (matchedItem) gameState.masteredStructures.add(matchedItem.name);
+
+          document.getElementById('l2-status-msg').textContent = " Pasangan Tepat! Lanjutkan memasangkan struktur lain.";
+        } else {
+          // Incorrect Match
+          sound.playWrong();
+          document.getElementById('l2-status-msg').textContent = " Pasangan belum tepat. Coba pilih kombinasi yang sesuai.";
+        }
+
+        // Reset Selections
+        gameState.l2SelectedName = null;
+        gameState.l2SelectedDesc = null;
+        updateStatusBar();
+
+        const count = gameState.l2MatchedPairs.size;
+        document.getElementById('l2-progress-text').textContent = `${count} / ${LEVEL2_PAIRS.length} Pasang`;
+
+        if (count === LEVEL2_PAIRS.length) {
+          document.getElementById('l2-btn-complete').classList.remove('hidden');
+          document.getElementById('l2-btn-complete').addEventListener('click', () => {
+            sound.playClick();
+            initLevel3();
+            showScreen('screen-level3');
+          });
+        }
+      }
+    }
+
+    /* LEVEL 3: INDEPENDENT ASSESSMENT LOGIC */
+    function initLevel3() {
+      gameState.currentLevel = 3;
+      updateStatusBar();
+      gameState.l3UserSelections = {};
+
+      const listContainer = document.getElementById('l3-questions-list');
+      listContainer.innerHTML = '';
+
+      const allOptions = Object.values(STRUCTURE_DATA).map(s => ({ id: s.id, name: s.name }));
+
+      LEVEL3_QUESTIONS.forEach(q => {
+        const card = document.createElement('div');
+        card.className = "p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2";
+        
+        let selectOptionsHtml = `<option value="">-- Pilih Nama Struktur --</option>`;
+        allOptions.forEach(opt => {
+          selectOptionsHtml += `<option value="${opt.id}">${opt.name}</option>`;
+        });
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-amber-400">${q.label}</span>
+          </div>
+          <select data-key="${q.key}" class="l3-select w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-100 focus:outline-none focus:border-amber-400">
+            ${selectOptionsHtml}
+          </select>
+        `;
+        listContainer.appendChild(card);
+      });
+
+      // Update count on select change
+      document.querySelectorAll('.l3-select').forEach(sel => {
+        sel.addEventListener('change', (e) => {
+          sound.playClick();
+          const k = sel.getAttribute('data-key');
+          gameState.l3UserSelections[k] = sel.value;
+          const answeredCount = Object.values(gameState.l3UserSelections).filter(v => v !== "").length;
+          document.getElementById('l3-progress-text').textContent = `${answeredCount} / 5 Terjawab`;
+        });
+      });
+    }
+
+    function handleL3Submit() {
+      sound.playClick();
+      // Evaluate Level 3 answers
+      let l3CorrectCount = 0;
+      LEVEL3_QUESTIONS.forEach(q => {
+        const userChoice = gameState.l3UserSelections[q.key];
+        const correctStruct = Object.values(STRUCTURE_DATA).find(s => s.id === q.correctId);
+
+        if (userChoice === q.correctId) {
+          l3CorrectCount++;
+          gameState.totalScore += 12; // 12 points each for total 60 pts max
+          if (correctStruct) gameState.masteredStructures.add(correctStruct.name);
+        } else {
+          if (correctStruct) gameState.reviewStructures.add(correctStruct.name);
+        }
+      });
+
+      renderResultsPage();
+      showScreen('screen-results');
+    }
+
+    /* FINAL RESULTS & EVALUATION */
+    function renderResultsPage() {
+      // Max raw score possible: 80 (L1) + 60 (L2) + 60 (L3) = 200
+      // Scale to 0 - 100
+      const maxPossibleRaw = 8*10 + 6*10 + 5*12; // 200
+      const scaledScore = Math.min(100, Math.round((gameState.totalScore / maxPossibleRaw) * 100));
+
+      document.getElementById('res-player-name').textContent = gameState.playerName || "Peneliti Muda";
+      document.getElementById('res-final-score').textContent = scaledScore;
+      
+      const accuracyPct = scaledScore;
+      document.getElementById('res-accuracy-pct').textContent = `${accuracyPct}%`;
+
+      // Status Badge
+      const statusEl = document.getElementById('res-mastery-status');
+      if (scaledScore >= 85) {
+        statusEl.textContent = "Sangat Baik (Tuntas)";
+        statusEl.className = "text-xl font-bold text-emerald-400 mt-2";
+      } else if (scaledScore >= 70) {
+        statusEl.textContent = "Cukup Baik (Cukup Tuntas)";
+        statusEl.className = "text-xl font-bold text-bio-400 mt-2";
+      } else {
+        statusEl.textContent = "Perlu Remedial / Ulasan";
+        statusEl.className = "text-xl font-bold text-rose-400 mt-2";
+      }
+
+      // Mastered vs Review Lists
+      const masteredList = document.getElementById('res-mastered-list');
+      const reviewList = document.getElementById('res-review-list');
+      masteredList.innerHTML = '';
+      reviewList.innerHTML = '';
+
+      if (gameState.masteredStructures.size === 0) {
+        masteredList.innerHTML = `<li>Belum ada struktur yang dikuasai sepenuhnya.</li>`;
+      } else {
+        gameState.masteredStructures.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          masteredList.appendChild(li);
+        });
+      }
+
+      if (gameState.reviewStructures.size === 0) {
+        reviewList.innerHTML = `<li>Semua struktur telah diidentifikasi dengan sangat baik!</li>`;
+      } else {
+        gameState.reviewStructures.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          reviewList.appendChild(li);
+        });
+      }
+
+      // Motivation & Scientific Notes
+      const motivationText = document.getElementById('res-motivation-text');
+      if (scaledScore >= 85) {
+        motivationText.textContent = `Luar biasa, ${gameState.playerName}! Kamu memiliki pengamatan mikroskopis Biologi yang sangat tajam. Kamu mampu membedakan dengan tepat antara komponen utama sel prokariotik dan organel aksesorisnya.`;
+      } else if (scaledScore >= 70) {
+        motivationText.textContent = `Kerja bagus, ${gameState.playerName}! Pemahamanmu mengenai sel prokariotik sudah cukup baik. Cermati kembali beberapa ciri visual organel seperti plasmid dan kapsul untuk menyempurnakan nilaimu.`;
+      } else {
+        motivationText.textContent = `Tetap semangat, ${gameState.playerName}! Luangkan waktu untuk mengulas kembali perbedaan utama antara dinding sel peptidoglikan, nukleoid, dan organel aksesoris pada sel prokariotik.`;
+      }
+    }
+  </script>
+</body>
+</html>
